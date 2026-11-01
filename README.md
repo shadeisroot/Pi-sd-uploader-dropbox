@@ -22,6 +22,8 @@ Good for a family member who takes lots of photos and never backs them up, a hol
 |---|---|---|---|
 | Working: leave the card in | Done: safe to take out | Something went wrong: **nothing was deleted** | Waiting for a card |
 
+<p align="center"><img src="docs/images/finished-build.jpg" alt="The finished uploader: a Raspberry Pi 3 in a clear case with Ethernet and a USB card reader plugged in, the green status light shining through the lid" width="600"></p>
+
 ## Features
 
 - **Automatic.** Starts when a card is inserted, including a card that's already in when the Pi boots.
