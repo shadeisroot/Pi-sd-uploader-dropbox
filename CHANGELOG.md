@@ -1,6 +1,7 @@
 # Changelog
 
 ## Unreleased
+- Fix: after a power cut, `sd-uploader status` and `logs` could show an older run as the last one (the clock is behind until it syncs). They now pick the most recently written log, and a run never reuses an existing log name
 - Docs: "Keeping it up to date": automatic security updates for the system, deliberate updates for SD Uploader
 
 ## 1.0.0 – 2026-11-01

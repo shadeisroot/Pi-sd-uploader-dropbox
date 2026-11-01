@@ -50,10 +50,11 @@ set_led() {
   mv "$RUN_DIR/state.tmp" "$RUN_DIR/state"
 }
 
-# The newest run log (names sort by date and time).
+# The most recently written run log. By time written, not by name: right after
+# a power cut the clock is behind until it syncs, so names can be out of order.
 latest_log() {
-  local logs=("$LOG_DIR"/run-*.log)
-  if [ -e "${logs[-1]}" ]; then echo "${logs[-1]}"; fi
+  find "$LOG_DIR" -maxdepth 1 -name 'run-*.log' -printf '%T@ %p\n' 2>/dev/null \
+    | sort -n | tail -n1 | cut -d' ' -f2-
 }
 
 test_leds() {

@@ -64,6 +64,8 @@ remote_path() { case "$REMOTE" in *: | */) echo "$REMOTE$1" ;; *) echo "$REMOTE/
 # --- Logging, lock, cleanup ----------------------------------------------------
 mkdir -p "$LOG_DIR" "$RUN_DIR"
 RUN_ID=$(date +%Y%m%d-%H%M%S)
+# Right after boot the clock can be behind until it syncs, so a name may be taken.
+[ -e "$LOG_DIR/run-$RUN_ID.log" ] && RUN_ID="$RUN_ID-$$"
 LOG="$LOG_DIR/run-$RUN_ID.log"
 MANIFEST="$LOG_DIR/run-$RUN_ID.manifest.tsv"
 DELETED="$LOG_DIR/run-$RUN_ID.deleted.txt"
