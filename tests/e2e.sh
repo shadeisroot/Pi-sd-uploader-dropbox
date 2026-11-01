@@ -33,7 +33,9 @@ FAILS=0
 pass() { printf '  \033[32m✓\033[0m %s\n' "$1"; }
 fail() { printf '  \033[31m✗\033[0m %s\n' "$1"; FAILS=$((FAILS + 1)); }
 check() { local what=$1; shift; if "$@"; then pass "$what"; else fail "$what"; fi; }
-last_log() { local logs=("$SD_UPLOADER_LOGS"/run-*.log); echo "${logs[-1]}"; }
+# Newest by time written (two runs in the same second get different names
+# that don't sort by time).
+last_log() { find "$SD_UPLOADER_LOGS" -name 'run-*.log' -printf '%T@ %p\n' | sort -n | tail -n1 | cut -d' ' -f2-; }
 log_has() { grep -q -- "$1" "$(last_log)"; }
 state_is() { [ "$(cat "$SD_UPLOADER_RUN/state" 2>/dev/null)" = "$1" ]; }
 remote_has() { [ -f "$REMOTE/$1" ]; }
