@@ -14,8 +14,9 @@ step() { printf '\033[1;34m==>\033[0m \033[1m%s\033[0m\n' "$*"; }
 note() { printf '    %s\n' "$*"; }
 die() { printf '\033[1;31mError:\033[0m %s\n' "$*" >&2; exit 1; }
 
-command -v apt-get >/dev/null && command -v systemctl >/dev/null \
-  || die "this needs Raspberry Pi OS (or another Debian-based system with systemd)"
+if ! command -v apt-get >/dev/null || ! command -v systemctl >/dev/null; then
+  die "this needs Raspberry Pi OS (or another Debian-based system with systemd)"
+fi
 
 step "Installing packages: exiftool, rclone, exFAT tools, gpiozero"
 apt-get update -qq

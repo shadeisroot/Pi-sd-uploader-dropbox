@@ -33,7 +33,7 @@ FAILS=0
 pass() { printf '  \033[32m✓\033[0m %s\n' "$1"; }
 fail() { printf '  \033[31m✗\033[0m %s\n' "$1"; FAILS=$((FAILS + 1)); }
 check() { local what=$1; shift; if "$@"; then pass "$what"; else fail "$what"; fi; }
-last_log() { ls -t "$SD_UPLOADER_LOGS"/run-*.log | head -n1; }
+last_log() { local logs=("$SD_UPLOADER_LOGS"/run-*.log); echo "${logs[-1]}"; }
 log_has() { grep -q -- "$1" "$(last_log)"; }
 state_is() { [ "$(cat "$SD_UPLOADER_RUN/state" 2>/dev/null)" = "$1" ]; }
 remote_has() { [ -f "$REMOTE/$1" ]; }
@@ -105,7 +105,7 @@ for fs in vfat exfat; do
   check "upload: non-photos not uploaded" [ -z "$(find "$REMOTE" -name 'README*' -o -name 'info*' -o -name '._*')" ]
   check "dry-run delete: lists 7 files" log_has "would delete these 7 files"
   check "dry-run delete: card unchanged" [ "$(card_files)" = "$before" ]
-  check "light green" state_is done
+  check "light green" state_is "done"
 
   offload DELETE=dry-run --
   check "second run: nothing to upload" log_has "plan: 0 to upload"
@@ -119,7 +119,7 @@ for fs in vfat exfat; do
   check "delete: other files kept" grep -q 'README.TXT' <<< "$after"
   check "delete: hidden files kept" grep -q '\._IMG_0001.JPG' <<< "$after"
   check "delete: Dropbox unchanged" [ "$(remote_hashes)" = "$hashes" ]
-  check "delete: light green" state_is done
+  check "delete: light green" state_is "done"
 
   offload DELETE=on --
   check "empty card: nothing to do" log_has "no photo or video files"

@@ -35,7 +35,7 @@ need_root() { [ "$(id -u)" -eq 0 ] || exec sudo -- "$0" "$@"; }
 
 # setting KEY: the value of KEY=... in the config file (empty if missing).
 setting() {
-  sed -n "s/^[[:space:]]*$1[[:space:]]*=//p" "$CONF" 2>/dev/null | tail -n1 \
+  sed -n "s/^[[:space:]]*${1}[[:space:]]*=//p" "$CONF" 2>/dev/null | tail -n1 \
     | sed 's/^[[:space:]]*//; s/[[:space:]]*$//; s/^"\(.*\)"$/\1/'
 }
 
@@ -50,7 +50,11 @@ set_led() {
   mv "$RUN_DIR/state.tmp" "$RUN_DIR/state"
 }
 
-latest_log() { ls -t "$LOG_DIR"/run-*.log 2>/dev/null | head -n1; }
+# The newest run log (names sort by date and time).
+latest_log() {
+  local logs=("$LOG_DIR"/run-*.log)
+  if [ -e "${logs[-1]}" ]; then echo "${logs[-1]}"; fi
+}
 
 test_leds() {
   if ! systemctl is-active -q sd-uploader-status.service; then
@@ -60,7 +64,7 @@ test_leds() {
   local before
   before=$(cat "$RUN_DIR/state" 2>/dev/null || echo idle)
   echo "Light: $(setting LED_BACKEND)"
-  for s in uploading done error; do
+  for s in uploading "done" error; do
     case $s in
       uploading) echo "  blue, blinking (uploading)" ;;
       done) echo "  green, on (done)" ;;

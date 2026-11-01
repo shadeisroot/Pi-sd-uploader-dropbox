@@ -23,7 +23,7 @@ export RCLONE_CONFIG="${RCLONE_CONFIG:-/var/lib/sd-uploader/rclone.conf}"
 setting() {
   local key=$1 val
   [ -n "${!key:-}" ] && return
-  val=$(sed -n "s/^[[:space:]]*$key[[:space:]]*=//p" "$CONF" 2>/dev/null | tail -n1)
+  val=$(sed -n "s/^[[:space:]]*${key}[[:space:]]*=//p" "$CONF" 2>/dev/null | tail -n1)
   val=$(printf '%s' "$val" | sed 's/^[[:space:]]*//; s/[[:space:]]*$//; s/^"\(.*\)"$/\1/')
   printf -v "$key" '%s' "${val:-$2}"
 }
@@ -50,6 +50,7 @@ for arg in "$@"; do
 done
 
 bad_setting() { echo "sd-uploader: bad setting in $CONF: $*" >&2; exit 2; }
+# shellcheck disable=SC2153  # DELETE is set by setting() above
 case "$DELETE" in on|off|dry-run) ;; *) bad_setting "DELETE=$DELETE (use on, off or dry-run)" ;; esac
 [[ $MIN_FREE_GB =~ ^[0-9]+$ ]] || bad_setting "MIN_FREE_GB=$MIN_FREE_GB (whole GiB)"
 [[ $TRANSFERS =~ ^[1-9][0-9]?$ ]] || bad_setting "TRANSFERS=$TRANSFERS (1-99)"
@@ -147,7 +148,7 @@ if [ ! -s "$WORK/files.tsv" ]; then
   # e.g. a card that was already offloaded: nothing to do, so safe to remove.
   log "no photo or video files on the card: nothing to do"
   DONE_OK=1
-  led done
+  led "done"
   exit 0
 fi
 
@@ -333,4 +334,4 @@ else
 fi
 # Green only now: everything is uploaded, verified, deleted and written to the card.
 DONE_OK=1
-led done
+led "done"

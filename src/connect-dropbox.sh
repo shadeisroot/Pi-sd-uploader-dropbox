@@ -10,8 +10,8 @@ die() { echo "Error: $*" >&2; exit 1; }
 
 # set_conf KEY VALUE: change KEY=... in the config file, or add it.
 set_conf() {
-  if grep -q "^[[:space:]]*$1[[:space:]]*=" "$CONF"; then
-    sed -i "s|^[[:space:]]*$1[[:space:]]*=.*|$1=$2|" "$CONF"
+  if grep -q "^[[:space:]]*${1}[[:space:]]*=" "$CONF"; then
+    sed -i "s|^[[:space:]]*${1}[[:space:]]*=.*|$1=$2|" "$CONF"
   else
     echo "$1=$2" >> "$CONF"
   fi
