@@ -1,0 +1,18 @@
+[Unit]
+Description=SD Uploader: upload card %I to Dropbox
+Documentation=https://github.com/shadeisroot/Pi-sd-uploader-dropbox
+# Also covers a card that is already in the reader when the Pi boots.
+Wants=network-online.target
+After=network-online.target sd-uploader-status.service
+
+[Service]
+Type=exec
+ExecStart=/usr/local/lib/sd-uploader/offload.sh /dev/%i
+# Hardening. The card is mounted inside this service's own mount namespace,
+# so it disappears automatically when the service stops.
+PrivateTmp=yes
+ProtectHome=yes
+ProtectSystem=full
+NoNewPrivileges=yes
+ProtectKernelTunables=yes
+ProtectControlGroups=yes

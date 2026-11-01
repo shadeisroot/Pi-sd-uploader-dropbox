@@ -1,0 +1,7 @@
+[Unit]
+Description=SD Uploader: card %I removed
+Documentation=https://github.com/shadeisroot/Pi-sd-uploader-dropbox
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/lib/sd-uploader/card-removed.sh %i

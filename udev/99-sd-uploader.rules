@@ -1,0 +1,7 @@
+# SD Uploader: start an upload when a card (a FAT/exFAT partition on a USB
+# drive) appears, and tell the uploader when it is pulled out.
+ACTION=="add", SUBSYSTEM=="block", ENV{DEVTYPE}=="partition", ENV{ID_BUS}=="usb", \
+  ENV{ID_FS_TYPE}=="vfat|exfat", \
+  RUN+="/usr/bin/systemctl --no-block start sd-uploader@%k.service"
+ACTION=="remove", SUBSYSTEM=="block", ENV{DEVTYPE}=="partition", ENV{ID_BUS}=="usb", \
+  RUN+="/usr/bin/systemctl --no-block start sd-uploader-removed@%k.service"

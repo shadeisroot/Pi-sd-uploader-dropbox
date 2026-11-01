@@ -1,0 +1,144 @@
+#!/usr/bin/env bash
+# sd-uploader: camera card -> Dropbox uploader for the Raspberry Pi.
+# Run `sd-uploader help` for the commands.
+set -euo pipefail
+
+LIB="${SD_UPLOADER_LIB:-/usr/local/lib/sd-uploader}"
+CONF="${SD_UPLOADER_CONF:-/etc/sd-uploader/sd-uploader.conf}"
+RUN_DIR="${SD_UPLOADER_RUN:-/run/sd-uploader}"
+LOG_DIR="${SD_UPLOADER_LOGS:-/var/log/sd-uploader}"
+export RCLONE_CONFIG="${RCLONE_CONFIG:-/var/lib/sd-uploader/rclone.conf}"
+VERSION=$(cat "$LIB/VERSION" 2>/dev/null || echo dev)
+
+usage() {
+  cat <<EOF
+sd-uploader $VERSION: upload camera cards to Dropbox, verify, then clear the card
+
+Usage: sudo sd-uploader <command>
+
+  setup              connect Dropbox and test the status light (run this first)
+  status             show the settings, the light, the Dropbox connection and the last run
+  logs [-f]          show the last run's log (-f: follow live)
+  run [--dry-run] [DEVICE]
+                     run by hand on the card in the reader (normally automatic)
+  connect            (re)connect Dropbox only
+  test-leds          show blue, green and red in turn
+  led STATE          set the light: idle | uploading | done | error
+  version            print the version
+
+Settings: $CONF
+EOF
+}
+
+# Every command touches root-owned files, so ask for sudo once here.
+need_root() { [ "$(id -u)" -eq 0 ] || exec sudo -- "$0" "$@"; }
+
+# setting KEY: the value of KEY=... in the config file (empty if missing).
+setting() {
+  sed -n "s/^[[:space:]]*$1[[:space:]]*=//p" "$CONF" 2>/dev/null | tail -n1 \
+    | sed 's/^[[:space:]]*//; s/[[:space:]]*$//; s/^"\(.*\)"$/\1/'
+}
+
+set_led() {
+  case "${1:-}" in
+    idle|uploading|done|error) ;;
+    *) echo "usage: sd-uploader led idle|uploading|done|error" >&2; exit 2 ;;
+  esac
+  mkdir -p "$RUN_DIR"
+  # Via a temp file, so the light daemon never reads a half-written state.
+  echo "$1" > "$RUN_DIR/state.tmp"
+  mv "$RUN_DIR/state.tmp" "$RUN_DIR/state"
+}
+
+latest_log() { ls -t "$LOG_DIR"/run-*.log 2>/dev/null | head -n1; }
+
+test_leds() {
+  if ! systemctl is-active -q sd-uploader-status.service; then
+    echo "The light service isn't running: sudo systemctl status sd-uploader-status" >&2
+    exit 1
+  fi
+  local before
+  before=$(cat "$RUN_DIR/state" 2>/dev/null || echo idle)
+  echo "Light: $(setting LED_BACKEND)"
+  for s in uploading done error; do
+    case $s in
+      uploading) echo "  blue, blinking (uploading)" ;;
+      done) echo "  green, on (done)" ;;
+      error) echo "  red, blinking fast (error)" ;;
+    esac
+    set_led "$s"
+    sleep 3
+  done
+  set_led "$before"
+  echo "Back to: $before"
+}
+
+status() {
+  local remote state log card="none" free
+  remote=$(setting REMOTE)
+  state=$(cat "$RUN_DIR/state" 2>/dev/null || echo idle)
+  for p in /sys/block/sd*/sd*[0-9]; do
+    [ -e "$p" ] && card="/dev/${p##*/}"
+  done
+  printf '%-12s %s\n' "Version" "$VERSION"
+  printf '%-12s %s\n' "Light" "$state ($(setting LED_BACKEND))"
+  printf '%-12s %s\n' "Delete" "$(setting DELETE)"
+  remote=${remote:-dropbox:}
+  case "$remote" in *: | */) ;; *) remote="$remote/" ;; esac
+  printf '%-12s %s\n' "Upload to" "$remote$(setting FOLDER_FORMAT)/"
+  if [ ! -s "$RCLONE_CONFIG" ]; then
+    printf '%-12s %s\n' "Dropbox" "not connected: run sudo sd-uploader setup"
+  elif free=$(timeout 20 rclone about "$remote" --json 2>/dev/null \
+      | sed -n 's/.*"free": *\([0-9]*\).*/\1/p') && [ -n "$free" ]; then
+    printf '%-12s %s\n' "Dropbox" "connected, $(numfmt --to=iec --suffix=B "$free") free"
+  else
+    printf '%-12s %s\n' "Dropbox" "can't reach it (no internet, or run sudo sd-uploader connect)"
+  fi
+  printf '%-12s %s\n' "Card" "$card"
+  printf '%-12s %s\n' "Running" "$(systemctl list-units --no-legend --plain 'sd-uploader@*' | awk '{print $1}' | tr '\n' ' ')"
+  log=$(latest_log)
+  if [ -n "$log" ]; then
+    printf '%-12s %s\n' "Last run" "$log"
+    grep -E '^[0-9:]{8} (PASS|FAIL|ERROR|deleted|delete|no photo)' "$log" | sed 's/^/             /' || true
+  fi
+}
+
+cmd="${1:-help}"
+[ $# -gt 0 ] && shift
+case "$cmd" in
+  help|-h|--help) usage ;;
+  version|--version) echo "$VERSION" ;;
+  run) need_root run "$@"; exec "$LIB/offload.sh" "$@" ;;
+  led) need_root led "$@"; set_led "${1:-}" ;;
+  test-leds) need_root test-leds; test_leds ;;
+  status) need_root status; status ;;
+  connect) need_root connect; exec "$LIB/connect-dropbox.sh" ;;
+  setup)
+    need_root setup
+    if [ -s "$RCLONE_CONFIG" ] && rclone about dropbox: >/dev/null 2>&1; then
+      echo "Dropbox: already connected (sudo sd-uploader connect to change it)"
+    else
+      "$LIB/connect-dropbox.sh"
+    fi
+    echo
+    if [ "$(setting LED_BACKEND)" != none ]; then
+      read -rp "Test the status light now? [Y/n] " a
+      [[ ${a:-y} =~ ^[Yy] ]] && test_leds
+    fi
+    echo
+    echo "Setup done. Delete mode is DELETE=$(setting DELETE) in $CONF"
+    echo "Put a camera card in the reader: blue while it works, green when it's safe to remove."
+    echo "Check on it with: sudo sd-uploader status"
+    ;;
+  logs)
+    need_root logs "$@"
+    if [ "${1:-}" = "-f" ]; then
+      exec journalctl -f -o cat -u 'sd-uploader@*' -u 'sd-uploader-removed@*'
+    fi
+    log=$(latest_log)
+    [ -n "$log" ] || { echo "no runs yet"; exit 0; }
+    echo "== $log"
+    cat "$log"
+    ;;
+  *) usage >&2; exit 2 ;;
+esac

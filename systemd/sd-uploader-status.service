@@ -1,0 +1,12 @@
+[Unit]
+Description=SD Uploader: status light
+Documentation=https://github.com/shadeisroot/Pi-sd-uploader-dropbox
+After=local-fs.target
+
+[Service]
+ExecStart=/usr/bin/python3 /usr/local/lib/sd-uploader/statusd.py
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
