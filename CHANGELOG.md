@@ -1,5 +1,8 @@
 # Changelog
 
+## Unreleased
+- Docs: "Keeping it up to date": automatic security updates for the system, deliberate updates for SD Uploader
+
 ## 1.0.0 – 2026-11-01
 First public release.
 

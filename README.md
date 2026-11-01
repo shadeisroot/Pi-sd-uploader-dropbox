@@ -195,12 +195,30 @@ Deleting photos is the one thing this project must never get wrong, so it's buil
 
 More in **[docs/troubleshooting.md](docs/troubleshooting.md)**. Want to reach the Pi when it lives at someone else's house? See **[docs/remote-access.md](docs/remote-access.md)**.
 
-## Updating and uninstalling
+## Keeping it up to date
+
+An uploader often runs for months without anyone logging in. Two kinds of updates, handled differently:
+
+**System security updates: automatic (recommended).** Debian's `unattended-upgrades` installs security fixes once a day:
 
 ```bash
-cd Pi-sd-uploader-dropbox && git pull && sudo ./install.sh   # update: keeps settings and login
-sudo ./uninstall.sh            # remove; keeps settings, Dropbox login and logs
-sudo ./uninstall.sh --purge    # remove those too
+sudo apt install -y unattended-upgrades
+sudo dpkg-reconfigure -plow unattended-upgrades     # answer "Yes"
+```
+
+It doesn't reboot by itself, and that's the safe choice here: a reboot in the middle of an upload means a red light and starting over. Kernel fixes take effect after you reboot; do that now and then when no card is in (`sudo reboot`).
+
+**SD Uploader itself: on purpose, never automatic.** This program deletes files, so new code shouldn't arrive unseen. Read the [changelog](CHANGELOG.md), then:
+
+```bash
+cd Pi-sd-uploader-dropbox && git pull && sudo ./install.sh   # keeps your settings and Dropbox login
+```
+
+## Uninstalling
+
+```bash
+sudo ./uninstall.sh            # keeps settings, Dropbox login and logs
+sudo ./uninstall.sh --purge    # removes those too
 ```
 
 Nothing in Dropbox is ever touched by uninstalling.
