@@ -97,7 +97,7 @@ fi
 echo
 echo "Testing the connection..."
 if free=$(rclone about dropbox: --json 2>/dev/null | sed -n 's/.*"free": *\([0-9]*\).*/\1/p') && [ -n "$free" ]; then
-  bold "Connected to Dropbox: $(numfmt --to=iec --suffix=B "$free") free."
+  bold "Connected to Dropbox: $(numfmt --to=iec-i --suffix=B --round=nearest "$free") free."
 else
   die "connected, but Dropbox didn't answer. Check the internet connection and try: sudo sd-uploader connect"
 fi

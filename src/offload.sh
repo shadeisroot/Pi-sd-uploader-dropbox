@@ -73,7 +73,7 @@ exec > >(tee -a "$LOG") 2>&1
 trap '' PIPE
 log() { echo "$(date +%H:%M:%S) $*"; }
 die() { log "ERROR: $*"; exit 1; }
-size() { numfmt --to=iec --suffix=B "$1"; }   # 1234567 -> 1.2MB
+size() { numfmt --to=iec-i --suffix=B --round=nearest "$1"; }   # 1234567 -> 1.2MiB
 # Status light: write the state for sd-uploader-status (via a temp file, so it
 # never reads half a word). A dry run leaves the light alone.
 led() {

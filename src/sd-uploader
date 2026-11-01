@@ -78,7 +78,7 @@ test_leds() {
 }
 
 status() {
-  local remote state log card="none" free
+  local remote state log card="none" free running
   remote=$(setting REMOTE)
   state=$(cat "$RUN_DIR/state" 2>/dev/null || echo idle)
   for p in /sys/block/sd*/sd*[0-9]; do
@@ -94,12 +94,13 @@ status() {
     printf '%-12s %s\n' "Dropbox" "not connected: run sudo sd-uploader setup"
   elif free=$(timeout 20 rclone about "$remote" --json 2>/dev/null \
       | sed -n 's/.*"free": *\([0-9]*\).*/\1/p') && [ -n "$free" ]; then
-    printf '%-12s %s\n' "Dropbox" "connected, $(numfmt --to=iec --suffix=B "$free") free"
+    printf '%-12s %s\n' "Dropbox" "connected, $(numfmt --to=iec-i --suffix=B --round=nearest "$free") free"
   else
     printf '%-12s %s\n' "Dropbox" "can't reach it (no internet, or run sudo sd-uploader connect)"
   fi
   printf '%-12s %s\n' "Card" "$card"
-  printf '%-12s %s\n' "Running" "$(systemctl list-units --no-legend --plain 'sd-uploader@*' | awk '{print $1}' | tr '\n' ' ')"
+  running=$(systemctl list-units --no-legend --plain 'sd-uploader@*' | awk '{print $1}' | tr '\n' ' ')
+  printf '%-12s %s\n' "Running" "${running:-no}"
   log=$(latest_log)
   if [ -n "$log" ]; then
     printf '%-12s %s\n' "Last run" "$log"
